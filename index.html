@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Health Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; }
+    .app { max-width: 600px; margin: 0 auto; padding: 1rem; }
+    h1 { font-size: 18px; font-weight: 500; margin-bottom: 1rem; }
+    .person-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+    .person-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd;
+      background: white; cursor: pointer; font-size: 13px; }
+    .person-btn.active { background: #1a73e8; color: white; border-color: #1a73e8; }
+    .chat { background: white; border-radius: 12px; padding: 1rem;
+      min-height: 400px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px; }
+    .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; max-width: 85%; }
+    .user { background: #1a73e8; color: white; align-self: flex-end; border-radius: 12px 12px 4px 12px; }
+    .agent { background: #f1f3f4; color: #202124; align-self: flex-start; border-radius: 12px 12px 12px 4px; }
+    .input-row { display: flex; gap: 8px; }
+    input { flex: 1; padding: 10px 14px; border-radius: 24px; border: 1px solid #ddd; font-size: 14px; }
+    button.send { padding: 10px 20px; border-radius: 24px; background: #1a73e8;
+      color: white; border: none; cursor: pointer; font-size: 14px; }
+    .quick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .qbtn { padding: 5px 12px; border-radius: 16px; border: 1px solid #ddd;
+      background: white; cursor: pointer; font-size: 12px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <h1>Family Health Agent</h1>
+  <div class="person-row">
+    <button class="person-btn active" onclick="setPerson('Father',this)">Father</button>
+    <button class="person-btn" onclick="setPerson('Mother',this)">Mother</button>
+  </div>
+  <div class="quick">
+    <button class="qbtn" onclick="ask('What medicines is ' + person + ' taking?')">Current medicines</button>
+    <button class="qbtn" onclick="ask('Last test results for ' + person)">Last test</button>
+    <button class="qbtn" onclick="ask('Upcoming follow-ups for ' + person)">Follow-ups</button>
+    <button class="qbtn" onclick="ask('Give me a full health summary for ' + person)">Full summary</button>
+  </div>
+  <div class="chat" id="chat">
+    <div class="msg agent">Hello! Ask me anything about your family's health records.</div>
+  </div>
+  <div class="input-row">
+    <input id="inp" placeholder="Ask anything..." onkeydown="if(event.key==='Enter') sendMsg()">
+    <button class="send" onclick="sendMsg()">Send</button>
+  </div>
+</div>
+<script>
+  const AGENT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+  let person = 'Father';
+
+  function setPerson(p, btn) {
+    person = p;
+    document.querySelectorAll('.person-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  function addMsg(role, text) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = text;
+    document.getElementById('chat').appendChild(div);
+    div.scrollIntoView();
+  }
+  async function ask(q) {
+    document.getElementById('inp').value = q;
+    await sendMsg();
+  }
+  async function sendMsg() {
+    const inp = document.getElementById('inp');
+    const q = inp.value.trim();
+    if (!q) return;
+    inp.value = '';
+    addMsg('user', q);
+    addMsg('agent', 'Thinking...');
+    try {
+      const r = await fetch(AGENT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ question: q, person })
+      });
+      const data = await r.json();
+      document.querySelectorAll('.agent:last-child')[0].textContent = data.answer;
+    } catch(e) {
+      document.querySelectorAll('.agent:last-child')[0].textContent = 'Error connecting. Check your setup.';
+    }
+  }
+</script>
+</body>
+</html>
