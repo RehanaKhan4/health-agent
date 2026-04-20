@@ -52,6 +52,107 @@
   const AGENT_URL = 'https://script.google.com/macros/s/AKfycbytGW9kn5Ha0XwkOHehMaKMDFqol0GqQRPT3LuT7eVYD-ohfbUuXeychXdjdJLjaWk/exec';
   let person = 'Father';
 
+  function renderResponse(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+
+  // Find numbered lines like "1. Metformin | Twice daily | Dr. Sharma"
+  const numbered = lines.filter(l => /^\d+\./.test(l));
+
+  // Find labeled lines like "Test: HbA1c" or "Date: 15 Apr 2026"
+  const labeled = lines.filter(l => /^[A-Za-z ]+:/.test(l) && !l.startsWith('Summary'));
+
+  // Find summary line
+  const summaryLine = lines.find(l => l.startsWith('Summary:'));
+
+  // Find header line — first line before any numbered or labeled content
+  const firstSpecial = Math.min(
+    numbered.length ? lines.indexOf(numbered[0]) : 999,
+    labeled.length ? lines.indexOf(labeled[0]) : 999
+  );
+  const header = firstSpecial > 0 ? lines.slice(0, firstSpecial).join(' ') : '';
+
+  // Case 1 — numbered list with pipe separators → render as table
+  if (numbered.length >= 1) {
+    const rows = numbered.map(line => {
+      const withoutNum = line.replace(/^\d+\.\s*/, '');
+      return withoutNum.split('|').map(p => p.trim()).filter(p => p);
+    });
+    const maxCols = Math.max(...rows.map(r => r.length));
+
+    let html = '';
+    if (header) {
+      html += `<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:8px">${header}</div>`;
+    }
+
+    html += `<div style="overflow-x:auto">`;
+    html += `<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:300px">`;
+    html += `<thead><tr>`;
+    html += `<th style="background:#1a73e8;color:white;padding:7px 10px;text-align:center;width:30px;border-radius:6px 0 0 0">#</th>`;
+    const colLabels = inferColumnLabels(rows, maxCols);
+    colLabels.forEach((label, i) => {
+      const radius = i === colLabels.length - 1 ? 'border-radius:0 6px 0 0' : '';
+      html += `<th style="background:#1a73e8;color:white;padding:7px 10px;text-align:left;${radius}">${label}</th>`;
+    });
+    html += `</tr></thead><tbody>`;
+
+    rows.forEach((row, i) => {
+      const bg = i % 2 === 0 ? '#ffffff' : '#f8f9fa';
+      html += `<tr style="background:${bg}">`;
+      html += `<td style="padding:7px 10px;color:#1a73e8;font-weight:500;text-align:center;border-bottom:1px solid #e8eaed">${i + 1}</td>`;
+      for (let c = 0; c < maxCols; c++) {
+        html += `<td style="padding:7px 10px;border-bottom:1px solid #e8eaed;color:#202124">${row[c] || ''}</td>`;
+      }
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    if (summaryLine) {
+      html += `<div style="font-size:12px;color:#5f6368;margin-top:8px;padding-top:8px;border-top:1px solid #e8eaed;font-style:italic">${summaryLine}</div>`;
+    }
+    return html;
+  }
+
+  // Case 2 — labeled card like "Test: HbA1c / Date: 15 Apr"
+  if (labeled.length >= 2) {
+    let html = '';
+    if (header) {
+      html += `<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:10px">${header}</div>`;
+    }
+    html += `<div style="background:#f8f9fa;border-radius:10px;padding:10px 12px;border:1px solid #e8eaed">`;
+    labeled.forEach(line => {
+      const colonIdx = line.indexOf(':');
+      const label = line.substring(0, colonIdx).trim();
+      const value = line.substring(colonIdx + 1).trim();
+      html += `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #eeeeee;align-items:baseline">`;
+      html += `<div style="font-size:11px;font-weight:500;color:#5f6368;min-width:100px;flex-shrink:0">${label}</div>`;
+      html += `<div style="font-size:13px;color:#202124">${value}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+    if (summaryLine) {
+      html += `<div style="font-size:12px;color:#5f6368;margin-top:8px;font-style:italic">${summaryLine}</div>`;
+    }
+    return html;
+  }
+
+  // Case 3 — plain conversational answer
+  return `<div style="font-size:14px;color:#202124;line-height:1.7">${lines.join('<br>')}</div>`;
+}
+
+function inferColumnLabels(rows, maxCols) {
+  const flat = rows.flat().join(' ').toLowerCase();
+  if (flat.includes('mg') || flat.includes('tablet') || flat.includes('daily')) {
+    return ['Medicine & dose', 'Frequency', 'Doctor', 'Condition', 'Notes'].slice(0, maxCols);
+  }
+  if (flat.includes('dr.') && (flat.includes('clinic') || flat.includes('visit') || flat.includes('apollo'))) {
+    return ['Date', 'Doctor', 'Clinic', 'Reason', 'Follow-up'].slice(0, maxCols);
+  }
+  if (flat.includes('%') || flat.includes('hba1c') || flat.includes('normal') || flat.includes('high') || flat.includes('low')) {
+    return ['Test', 'Date', 'Result', 'Status', 'Lab'].slice(0, maxCols);
+  }
+  return Array.from({length: maxCols}, (_, i) => ['Details', 'Value', 'Info', 'Notes', 'Status'][i] || 'Field');
+}
+
   function setPerson(p, btn) {
     person = p;
     document.querySelectorAll('.person-btn').forEach(b => b.classList.remove('active'));
