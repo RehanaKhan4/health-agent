@@ -111,8 +111,7 @@
     .condition-group {
       margin-bottom: 14px;
     }
-
-    .condition-header {
+.condition-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -136,6 +135,7 @@
 .cond-anxiety     { background: var(--purple-soft); color: var(--purple); border-left-color: var(--purple); }
 .cond-vitamins    { background: var(--green-soft);  color: var(--green);  border-left-color: var(--green); }
 .cond-general     { background: var(--surface-2);   color: var(--ink-3);  border-left-color: var(--border); border: 1px solid var(--border); }
+  
     .cond-count {
       margin-left: auto;
       font-size: 10px;
@@ -498,7 +498,18 @@ function renderMedicines(lines) {
     html += '<div class="med-response-header">' + headerLine.trim() + '</div>';
     if (countMatch) html += '<div class="med-response-sub">' + sectionOrder.length + ' condition group' + (sectionOrder.length !== 1 ? 's' : '') + ' · tap a medicine for details</div>';
   }
-
+var borderColors = {
+  psychiatric: 'var(--purple)',
+  diabetes: 'var(--blue)',
+  bp: 'var(--rose)',
+  thyroid: 'var(--teal)',
+  kidney: 'var(--amber)',
+  cholesterol: 'var(--green)',
+  anxiety: 'var(--purple)',
+  vitamins: 'var(--green)',
+  general: 'var(--border)'
+};
+  
   sectionOrder.forEach(function(key) {
     var meta = conditionMeta[key] || conditionMeta.general;
     var items = sections[key];
@@ -519,8 +530,8 @@ function renderMedicines(lines) {
       var cond = fm ? fm[1].trim() : '';
       var freq = cond ? medDetail.replace(/\(?for .+?\)?\.?$/i, '').replace(/-\s*$/, '').trim() : medDetail;
       var timingHtml = getTimingChips(freq + ' ' + medDetail + ' ' + medName);
-
-      html += '<div class="med-item">' +
+      
+      html += '<div class="med-item" style="border-left-color:' + (borderColors[key] || 'var(--border)') + '">' +
         '<div class="med-badge-num ' + meta.numCls + '">' + (idx + 1) + '</div>' +
         '<div class="med-body">' +
         '<div class="med-name">' + medName + '</div>' +
