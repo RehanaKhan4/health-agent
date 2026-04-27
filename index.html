@@ -76,26 +76,55 @@
   function renderResponse(text) {
   if (!text) return '<div style="color:#202124;font-size:14px">No response received.</div>';
 
+  // Strip ALL markdown FIRST before any processing
+  text = text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .trim();
+
   const lines = text.split('\n').map(l => l.trim()).filter(l => l);
 
-  // Check if response has sections with items under them
-  const hasSections = lines.some(l => /^[A-Z][^|]+:$/.test(l) || /medications:|medicines:|health:|psychiatric:|general:|conditions:|tests:|visits:/i.test(l));
+  const hasSections = lines.some(l =>
+    /^[A-Z][^|]{3,}:?\s*$/.test(l) ||
+    /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Morning|Evening|Night|Daily|Condition|Medication)/i.test(l)
+  );
+  const hasItems = lines.some(l => /^[-–—*]\s/.test(l));
   const hasNumbered = lines.some(l => /^\d+\./.test(l));
-  const hasItems = lines.some(l => /^[-–—]/.test(l));
 
-  // CASE 1 — has sections with bullet items → render as headed numbered groups
+  // ── CASE 1: Sections with bullet items ──────────────────────
   if (hasSections && hasItems) {
     let html = '';
     let currentSection = null;
     let itemNum = 0;
     let summaryLine = '';
+    let headerLine = '';
+    let inSection = false;
 
     lines.forEach(line => {
-      // Detect summary line
+      // Summary / closing line
       if (/^summary:/i.test(line) || /^all these/i.test(line) || /^all medications/i.test(line)) {
         summaryLine = line;
         return;
       }
+
+      // Section heading detection
+      const isHeading =
+        (/^[A-Z][^|]{3,}:?\s*$/.test(line) && !/^[-–—\d]/.test(line)) ||
+        /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Morning|Evening|Night|Daily)/i.test(line);
+
+      if (isHeading && !hasItems) return;
+
+      if (isHeading) {
+        // Close previous section
+        if (inSection) html += `</div></div>`;
+        const cleanHeading = line.replace(/:$/, '').trim();
+        itemNum = 0;
+        inSection = true;
+        currentSection = cleanHeading;
+        html += `
+          <div style="margin-bottom:16px">
+            <div style="font-
 
       // Detect section heading — line ending with : or bold heading
       const isHeading = /^[A-Z][^|]{3,}:$/.test(line) ||
