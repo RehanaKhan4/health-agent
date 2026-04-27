@@ -1,54 +1,548 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Family Health Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --cream: #FAF7F2;
+      --warm-white: #FFFEF9;
+      --ink: #1A1612;
+      --ink-soft: #4A3F35;
+      --ink-muted: #8C7D6E;
+      --accent: #C4622D;
+      --accent-soft: #F0E6DC;
+      --accent-light: #FBF4EE;
+      --green: #2D6E4E;
+      --green-soft: #E8F4EE;
+      --red: #C42D2D;
+      --red-soft: #F4E8E8;
+      --amber: #C47A2D;
+      --amber-soft: #F4EEE8;
+      --border: #E8E0D4;
+      --border-soft: #F0EAE0;
+      --shadow: 0 1px 3px rgba(26,22,18,0.06), 0 4px 16px rgba(26,22,18,0.04);
+      --shadow-md: 0 2px 8px rgba(26,22,18,0.08), 0 8px 32px rgba(26,22,18,0.06);
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f5f5f5; }
-    .app { max-width: 600px; margin: 0 auto; padding: 1rem; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    h1 { font-size: 18px; font-weight: 500; }
-    .clear-btn { padding: 4px 12px; border-radius: 12px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px; color: #5f6368; }
-    .person-row { display: flex; gap: 8px; margin-bottom: 1rem; }
-    .person-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 13px; }
-    .person-btn.active { background: #1a73e8; color: white; border-color: #1a73e8; }
-    .chat { background: white; border-radius: 12px; padding: 1rem; min-height: 400px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px; }
-    .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; max-width: 85%; }
-    .user { background: #1a73e8; color: white; align-self: flex-end; border-radius: 12px 12px 4px 12px; }
-    .input-row { display: flex; gap: 8px; }
-    input { flex: 1; padding: 10px 14px; border-radius: 24px; border: 1px solid #ddd; font-size: 14px; }
-    button.send { padding: 10px 20px; border-radius: 24px; background: #1a73e8; color: white; border: none; cursor: pointer; font-size: 14px; }
-    .quick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-    .qbtn { padding: 5px 12px; border-radius: 16px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px; }
-    .system-msg { text-align: center; font-size: 11px; color: #9aa0a6; padding: 4px 0; font-style: italic; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── LAYOUT ── */
+    .app {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 1rem 2rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      padding: 1.5rem 0 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .header-left h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.75rem;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .header-left p {
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-top: 3px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .clear-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      color: var(--ink-muted);
+      background: none;
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .clear-btn:hover { background: var(--border-soft); color: var(--ink-soft); }
+
+    /* ── PERSON TOGGLE ── */
+    .person-toggle {
+      display: flex;
+      background: var(--warm-white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 1rem;
+      gap: 4px;
+    }
+
+    .person-btn {
+      flex: 1;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 9px 0;
+      border: none;
+      background: none;
+      border-radius: 9px;
+      cursor: pointer;
+      color: var(--ink-muted);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .person-btn .avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--border);
+      color: var(--ink-soft);
+      transition: all 0.2s;
+    }
+
+    .person-btn.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 2px 8px rgba(196,98,45,0.25);
+    }
+
+    .person-btn.active .avatar {
+      background: rgba(255,255,255,0.25);
+      color: white;
+    }
+
+    /* ── QUICK ACTIONS ── */
+    .quick-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .qbtn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--warm-white);
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .qbtn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* ── CHAT AREA ── */
+    .chat {
+      flex: 1;
+      background: var(--warm-white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: 420px;
+      overflow-y: auto;
+    }
+
+    /* ── MESSAGES ── */
+    .msg-user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 18px 18px 4px 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 78%;
+      font-weight: 400;
+    }
+
+    .msg-agent {
+      align-self: flex-start;
+      width: 100%;
+    }
+
+    .msg-agent-bubble {
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: 4px 18px 18px 18px;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+
+    .msg-thinking {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 0;
+      color: var(--ink-muted);
+      font-size: 13px;
+    }
+
+    .thinking-dots {
+      display: flex;
+      gap: 3px;
+    }
+
+    .thinking-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--ink-muted);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+      30% { opacity: 1; transform: scale(1); }
+    }
+
+    .system-msg {
+      text-align: center;
+      font-size: 11px;
+      color: var(--ink-muted);
+      padding: 2px 0;
+      font-style: italic;
+    }
+
+    /* ── RESPONSE COMPONENTS ── */
+    .resp-header {
+      font-family: 'DM Serif Display', serif;
+      font-size: 15px;
+      color: var(--ink);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .section-heading {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 4px;
+      display: inline-block;
+      margin: 12px 0 8px;
+    }
+
+    .section-heading:first-child { margin-top: 0; }
+
+    .med-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: var(--warm-white);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .med-num {
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .med-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .med-detail {
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    .test-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: var(--warm-white);
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      border-left: 3px solid var(--border);
+    }
+
+    .test-card.high { border-left-color: var(--red); }
+    .test-card.low { border-left-color: var(--amber); }
+    .test-card.normal { border-left-color: var(--green); }
+
+    .test-num {
+      border-radius: 50%;
+      min-width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+      background: var(--border);
+      color: var(--ink-soft);
+    }
+
+    .test-card.high .test-num { background: var(--red-soft); color: var(--red); }
+    .test-card.low .test-num { background: var(--amber-soft); color: var(--amber); }
+    .test-card.normal .test-num { background: var(--green-soft); color: var(--green); }
+
+    .test-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 2px;
+    }
+
+    .test-result { font-size: 12px; color: var(--ink-soft); }
+
+    .status-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-high { background: var(--red-soft); color: var(--red); }
+    .badge-low { background: var(--amber-soft); color: var(--amber); }
+    .badge-normal { background: var(--green-soft); color: var(--green); }
+
+    .info-card {
+      background: var(--warm-white);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .info-row {
+      display: flex;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-soft);
+      align-items: baseline;
+    }
+
+    .info-row:last-child { border-bottom: none; }
+
+    .info-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      min-width: 100px;
+      flex-shrink: 0;
+    }
+
+    .info-value {
+      font-size: 13px;
+      color: var(--ink);
+      flex: 1;
+    }
+
+    .summary-bar {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: var(--accent-soft);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .plain-text {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.7;
+    }
+
+    .plain-text div { margin-bottom: 5px; }
+
+    /* ── ERROR STATE ── */
+    .error-bubble {
+      color: var(--red);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .retry-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border: 1px solid var(--red);
+      border-radius: 16px;
+      background: white;
+      color: var(--red);
+      cursor: pointer;
+    }
+
+    /* ── INPUT ── */
+    .input-area {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+
+    .input-wrap {
+      flex: 1;
+      background: var(--warm-white);
+      border: 1.5px solid var(--border);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      padding: 2px 6px 2px 16px;
+      transition: border-color 0.15s;
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--accent);
+    }
+
+    .input-wrap input {
+      flex: 1;
+      border: none;
+      background: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      padding: 10px 0;
+      outline: none;
+    }
+
+    .input-wrap input::placeholder { color: var(--ink-muted); }
+
+    .send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover { background: #b5582a; transform: scale(1.04); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .send-btn svg { width: 16px; height: 16px; fill: white; }
   </style>
 </head>
 <body>
 <div class="app">
-  <div class="top-bar">
-    <h1>Family Health Agent</h1>
+
+  <div class="header">
+    <div class="header-left">
+      <h1>Family Health</h1>
+      <p>Powered by Claude AI</p>
+    </div>
     <button class="clear-btn" onclick="clearChat()">Clear chat</button>
   </div>
-  <div class="person-row">
-    <button class="person-btn active" onclick="setPerson('Father',this)">Father</button>
-    <button class="person-btn" onclick="setPerson('Mother',this)">Mother</button>
+
+  <div class="person-toggle">
+    <button class="person-btn active" onclick="setPerson('Father', this)">
+      <span class="avatar">P</span> Father
+    </button>
+    <button class="person-btn" onclick="setPerson('Mother', this)">
+      <span class="avatar">M</span> Mother
+    </button>
   </div>
-  <div class="quick">
-    <button class="qbtn" onclick="ask('What medicines is ' + person + ' taking?')">Current medicines</button>
-    <button class="qbtn" onclick="ask('Last test results for ' + person)">Last test</button>
-    <button class="qbtn" onclick="ask('Upcoming follow-ups for ' + person)">Follow-ups</button>
-    <button class="qbtn" onclick="ask('Give me a full health summary for ' + person)">Full summary</button>
+
+  <div class="quick-actions">
+    <button class="qbtn" onclick="ask('What medicines is ' + person + ' taking?')">💊 Medicines</button>
+    <button class="qbtn" onclick="ask('Last test results for ' + person)">🧪 Last test</button>
+    <button class="qbtn" onclick="ask('Upcoming follow-ups for ' + person)">📅 Follow-ups</button>
+    <button class="qbtn" onclick="ask('Give me a full health summary for ' + person)">📋 Full summary</button>
   </div>
+
   <div class="chat" id="chat">
-    <div class="msg" style="align-self:flex-start;background:#f1f3f4;color:#202124;border-radius:4px 12px 12px 12px;">Hello! Ask me anything about your family health records.</div>
+    <div class="msg-agent">
+      <div class="msg-agent-bubble">
+        <span style="font-family:'DM Serif Display',serif;font-size:15px">Hello!</span>
+        Ask me anything about your family's health — medicines, test results, upcoming appointments, or a full summary.
+      </div>
+    </div>
   </div>
-  <div class="input-row">
-    <input id="inp" placeholder="Ask anything..." onkeydown="if(event.key==='Enter') sendMsg()">
-    <button class="send" onclick="sendMsg()">Send</button>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <input id="inp" placeholder="Ask anything about health records..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
+    </div>
+    <button class="send-btn" id="sendBtn" onclick="sendMsg()">
+      <svg viewBox="0 0 16 16"><path d="M1 8L15 1L11 8L15 15L1 8Z"/></svg>
+    </button>
   </div>
+
 </div>
 
 <script>
@@ -64,30 +558,28 @@ function setPerson(p, btn) {
   if (p !== lastPerson) {
     conversationHistory = [];
     lastPerson = p;
-    showSystemMsg('Switched to ' + p + '. Starting fresh conversation.');
+    showSystemMsg('Switched to ' + p);
   }
 }
 
 function showSystemMsg(text) {
-  const chat = document.getElementById('chat');
-  const div = document.createElement('div');
-  div.className = 'system-msg';
-  div.textContent = text;
-  chat.appendChild(div);
+  const d = document.createElement('div');
+  d.className = 'system-msg';
+  d.textContent = text;
+  document.getElementById('chat').appendChild(d);
 }
 
 function clearChat() {
   conversationHistory = [];
   const chat = document.getElementById('chat');
   chat.innerHTML = '';
-  showSystemMsg('Conversation cleared.');
+  showSystemMsg('Conversation cleared');
 }
 
-// ── RENDER RESPONSE ──────────────────────────────────────────
+// ── RENDER ─────────────────────────────────────────
 function renderResponse(text) {
-  if (!text) return '<div style="color:#202124;font-size:14px">No response received.</div>';
+  if (!text) return '<div class="plain-text">No response received.</div>';
 
-  // Strip markdown FIRST
   text = text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
@@ -98,18 +590,18 @@ function renderResponse(text) {
 
   var hasSections = lines.some(function(l) {
     return /^[A-Z][^|]{3,}:?\s*$/.test(l) ||
-      /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Condition|Medication|Blood|Cholesterol)/i.test(l);
+      /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Blood|Cholesterol|Medication)/i.test(l);
   });
   var hasItems = lines.some(function(l) { return /^[-\u2013\u2014*]\s/.test(l); });
   var hasNumbered = lines.some(function(l) { return /^\d+\./.test(l); });
 
-  // CASE 1 — sections with bullet items
+  // CASE 1 — sections with items
   if (hasSections && hasItems) {
     var html = '';
-    var currentSection = null;
+    var inSection = false;
     var itemNum = 0;
     var summaryLine = '';
-    var inSection = false;
+    var headerLine = '';
 
     lines.forEach(function(line) {
       if (/^summary:/i.test(line) || /^all these/i.test(line) || /^all medications/i.test(line)) {
@@ -121,55 +613,47 @@ function renderResponse(text) {
         /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Blood|Cholesterol)/i.test(line);
 
       if (isHeading) {
-        if (inSection) { html += '</div></div>'; }
-        var cleanHeading = line.replace(/:$/, '').trim();
         itemNum = 0;
         inSection = true;
-        currentSection = cleanHeading;
-        html += '<div style="margin-bottom:16px">' +
-          '<div style="font-size:12px;font-weight:600;color:#1a73e8;margin-bottom:8px;' +
-          'padding:5px 12px;background:#e8f0fe;border-radius:6px;display:inline-block;' +
-          'text-transform:uppercase;letter-spacing:.04em">' + cleanHeading + '</div><div>';
+        var cleanH = line.replace(/:$/, '').trim();
+        html += '<div class="section-heading">' + cleanH + '</div>';
         return;
       }
-     if (/^[-\u2013\u2014*]\s/.test(line) || (inSection && line.length > 3 && !isHeading)) {
+
+      if (/^[-\u2013\u2014*]\s/.test(line) || (inSection && line.length > 3 && !isHeading)) {
         itemNum++;
         var itemText = line.replace(/^[-\u2013\u2014*]\s+/, '').trim();
-        var dashIdx = itemText.indexOf(' - ');
-        var medName = (dashIdx > -1 ? itemText.substring(0, dashIdx) : itemText).trim();
-        var medDetail = dashIdx > -1 ? itemText.substring(dashIdx + 3).trim() : '';
-        var forMatch = medDetail.match(/\(?for (.+?)\)?\.?$/i);
-        var condition = forMatch ? forMatch[1].trim() : '';
-        var freq = condition ? medDetail.replace(/\(?for .+?\)?\.?$/i, '').replace(/-\s*$/, '').trim() : medDetail;
+        var di = itemText.indexOf(' - ');
+        var medName = (di > -1 ? itemText.substring(0, di) : itemText).trim();
+        var medDetail = di > -1 ? itemText.substring(di + 3).trim() : '';
+        var fm = medDetail.match(/\(?for (.+?)\)?\.?$/i);
+        var cond = fm ? fm[1].trim() : '';
+        var freq = cond ? medDetail.replace(/\(?for .+?\)?\.?$/i, '').replace(/-\s*$/, '').trim() : medDetail;
 
         if (!inSection) {
           inSection = true;
-          html += '<div style="margin-bottom:16px"><div>';
         }
 
-        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;' +
-          'margin-bottom:8px;background:#f8f9fa;border-radius:10px;border-left:3px solid #1a73e8">' +
-          '<div style="background:#1a73e8;color:white;border-radius:50%;min-width:22px;height:22px;' +
-          'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
-          'flex-shrink:0;margin-top:1px">' + itemNum + '</div>' +
+        html += '<div class="med-card">' +
+          '<div class="med-num">' + itemNum + '</div>' +
           '<div style="flex:1">' +
-          '<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:3px">' + medName + '</div>' +
-          (freq ? '<div style="font-size:12px;color:#5f6368;margin-bottom:2px">' + freq + '</div>' : '') +
-          (condition ? '<div style="font-size:12px;color:#1a73e8">For: ' + condition + '</div>' : '') +
+          '<div class="med-name">' + medName + '</div>' +
+          (freq ? '<div class="med-detail">' + freq + '</div>' : '') +
+          (cond ? '<div class="med-detail" style="color:var(--accent)">' + cond + '</div>' : '') +
           '</div></div>';
         return;
       }
 
-      if (!inSection && line) {
-        html += '<div style="font-size:14px;color:#202124;margin-bottom:8px;font-weight:500;' +
-          'padding-bottom:8px;border-bottom:1px solid #e8eaed">' + line + '</div>';
+      if (!inSection) {
+        headerLine += line + ' ';
       }
     });
 
-    if (inSection) { html += '</div></div>'; }
+    if (headerLine) {
+      html = '<div class="resp-header">' + headerLine.trim() + '</div>' + html;
+    }
     if (summaryLine) {
-      html += '<div style="margin-top:8px;padding:10px 14px;background:#e8f0fe;border-radius:8px;' +
-        'font-size:12px;color:#1a73e8;font-weight:500">' + summaryLine + '</div>';
+      html += '<div class="summary-bar">' + summaryLine + '</div>';
     }
     if (html) return html;
   }
@@ -177,52 +661,47 @@ function renderResponse(text) {
   // CASE 2 — numbered list
   if (hasNumbered) {
     var numbered = lines.filter(function(l) { return /^\d+\./.test(l); });
-    var summaryLine2 = lines.find(function(l) { return /^summary:/i.test(l); });
+    var sl = lines.find(function(l) { return /^summary:/i.test(l); });
     var firstNum = lines.indexOf(numbered[0]);
     var header = firstNum > 0 ? lines.slice(0, firstNum).join(' ') : '';
     var html2 = '';
 
     if (header) {
-      html2 += '<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:14px;' +
-        'padding-bottom:10px;border-bottom:1px solid #e8eaed">' + header + '</div>';
+      html2 += '<div class="resp-header">' + header + '</div>';
     }
 
     numbered.forEach(function(line, idx) {
       var withoutNum = line.replace(/^\d+\.\s*/, '');
-      var name, freq, doctor, condition;
+      var name, detail, status;
 
       if (withoutNum.includes('|')) {
-        var parts = withoutNum.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p; });
+        var parts = withoutNum.split('|').map(function(p) { return p.trim(); });
         name = parts[0] || '';
-        freq = parts[1] || '';
-        doctor = parts[2] || '';
-        condition = parts[3] ? parts[3].replace(/^for:\s*/i, '') : '';
+        detail = parts.slice(1, -1).join(' · ');
+        status = parts[parts.length - 1] || '';
       } else {
-        var di = withoutNum.indexOf(' - ');
-        name = (di > -1 ? withoutNum.substring(0, di) : withoutNum).trim();
-        var detail = di > -1 ? withoutNum.substring(di + 3).trim() : '';
-        var fm = detail.match(/\(?for (.+?)\)?\.?$/i);
-        condition = fm ? fm[1].trim() : '';
-        freq = condition ? detail.replace(/\(?for .+?\)?\.?$/i, '').replace(/-\s*$/, '').trim() : detail;
-        doctor = '';
+        var di2 = withoutNum.indexOf(' - ');
+        name = (di2 > -1 ? withoutNum.substring(0, di2) : withoutNum).trim();
+        detail = di2 > -1 ? withoutNum.substring(di2 + 3).trim() : '';
+        status = '';
       }
 
-      html2 += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;' +
-        'margin-bottom:8px;background:#f8f9fa;border-radius:10px;border-left:3px solid #1a73e8">' +
-        '<div style="background:#1a73e8;color:white;border-radius:50%;min-width:22px;height:22px;' +
-        'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
-        'flex-shrink:0;margin-top:1px">' + (idx + 1) + '</div>' +
+      var statusLow = status.toLowerCase();
+      var cardClass = statusLow.includes('high') ? 'test-card high' : statusLow.includes('low') ? 'test-card low' : statusLow.includes('normal') ? 'test-card normal' : 'test-card';
+      var numClass = statusLow.includes('high') ? 'test-num' : statusLow.includes('low') ? 'test-num' : statusLow.includes('normal') ? 'test-num' : 'test-num';
+      var badgeClass = statusLow.includes('high') ? 'status-badge badge-high' : statusLow.includes('low') ? 'status-badge badge-low' : statusLow.includes('normal') ? 'status-badge badge-normal' : '';
+
+      html2 += '<div class="' + cardClass + '">' +
+        '<div class="' + numClass + '">' + (idx + 1) + '</div>' +
         '<div style="flex:1">' +
-        '<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:3px">' + name + '</div>' +
-        (freq ? '<div style="font-size:12px;color:#5f6368;margin-bottom:2px">' + freq + '</div>' : '') +
-        (doctor ? '<div style="font-size:12px;color:#5f6368;margin-bottom:2px">' + doctor + '</div>' : '') +
-        (condition ? '<div style="font-size:12px;color:#1a73e8">For: ' + condition + '</div>' : '') +
+        '<div class="test-name">' + name + '</div>' +
+        (detail ? '<div class="test-result">' + detail + '</div>' : '') +
+        (badgeClass ? '<div class="' + badgeClass + '">' + status + '</div>' : '') +
         '</div></div>';
     });
 
-    if (summaryLine2) {
-      html2 += '<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;' +
-        'font-size:12px;color:#1a73e8;font-weight:500">' + summaryLine2 + '</div>';
+    if (sl) {
+      html2 += '<div class="summary-bar">' + sl + '</div>';
     }
     return html2;
   }
@@ -234,72 +713,57 @@ function renderResponse(text) {
   if (labeled.length >= 2) {
     var firstLbl = lines.indexOf(labeled[0]);
     var hdr = firstLbl > 0 ? lines.slice(0, firstLbl).join(' ') : '';
-    var html3 = hdr ? '<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:12px">' + hdr + '</div>' : '';
-    html3 += '<div style="background:#f8f9fa;border-radius:10px;padding:4px 0;border:1px solid #e8eaed">';
-    labeled.forEach(function(line, i) {
+    var html3 = hdr ? '<div class="resp-header">' + hdr + '</div>' : '';
+    html3 += '<div class="info-card">';
+    labeled.forEach(function(line) {
       var ci = line.indexOf(':');
       var lbl = line.substring(0, ci).trim();
       var val = line.substring(ci + 1).trim();
-      html3 += '<div style="display:flex;gap:12px;padding:10px 14px;' +
-        (i < labeled.length - 1 ? 'border-bottom:1px solid #e8eaed;' : '') + 'align-items:baseline">' +
-        '<div style="font-size:11px;font-weight:500;color:#80868b;min-width:110px;flex-shrink:0;' +
-        'text-transform:uppercase;letter-spacing:.03em">' + lbl + '</div>' +
-        '<div style="font-size:13px;color:#202124;flex:1">' + val + '</div></div>';
+      html3 += '<div class="info-row"><div class="info-label">' + lbl + '</div><div class="info-value">' + val + '</div></div>';
     });
     html3 += '</div>';
-    var sl = lines.find(function(l) { return /^summary:/i.test(l); });
-    if (sl) {
-      html3 += '<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;' +
-        'font-size:12px;color:#1a73e8;font-weight:500">' + sl + '</div>';
-    }
+    var slc = lines.find(function(l) { return /^summary:/i.test(l); });
+    if (slc) html3 += '<div class="summary-bar">' + slc + '</div>';
     return html3;
   }
 
   // CASE 4 — plain text
-  return '<div style="font-size:14px;color:#202124;line-height:1.8">' +
-    lines.map(function(l) {
-      return '<div style="margin-bottom:6px">' + l + '</div>';
-    }).join('') + '</div>';
+  return '<div class="plain-text">' + lines.map(function(l) {
+    return '<div>' + l + '</div>';
+  }).join('') + '</div>';
 }
 
-// ── VALIDATION ───────────────────────────────────────────────
-function validateResponse(data) {
-  if (!data) return { valid: false, text: 'No response received. Please check your connection.' };
-  if (data.status === 'error') return { valid: false, text: 'The agent encountered an error. Please try again.' };
-  if (!data.answer || typeof data.answer !== 'string') return { valid: false, text: 'Empty response. Please try again.' };
-  var text = data.answer.trim();
-  if (text.length < 10) return { valid: false, text: 'Response too short. Please try again.' };
-  return { valid: true, text: text };
-}
-
-function renderError(message, q) {
-  return '<div style="color:#d93025;font-size:13px;margin-bottom:8px">' + message + '</div>' +
-    '<button onclick="retryQuestion(\'' + q.replace(/'/g, "\\'") + '\');return false;" ' +
-    'style="padding:6px 14px;border-radius:16px;border:1px solid #d93025;background:white;' +
-    'color:#d93025;cursor:pointer;font-size:12px;font-family:inherit">Try again</button>';
-}
-
-function retryQuestion(q) {
-  document.getElementById('inp').value = q;
-  sendMsg();
-}
-
-// ── MESSAGING ────────────────────────────────────────────────
-function addMsg(role, text, isHtml) {
+// ── MESSAGING ──────────────────────────────────────
+function addUserMsg(text) {
   var chat = document.getElementById('chat');
-  var div = document.createElement('div');
-  if (role === 'user') {
-    div.className = 'msg user';
-    div.textContent = text;
+  var d = document.createElement('div');
+  d.className = 'msg-user';
+  d.textContent = text;
+  chat.appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
+}
+
+function addAgentMsg(html, isThinking) {
+  var chat = document.getElementById('chat');
+  var d = document.createElement('div');
+  d.className = 'msg-agent';
+  if (isThinking) {
+    d.innerHTML = '<div class="msg-thinking"><div class="thinking-dots"><span></span><span></span><span></span></div> Thinking...</div>';
   } else {
-    div.style.cssText = 'align-self:flex-start;width:100%;max-width:100%;background:#f1f3f4;' +
-      'border-radius:4px 12px 12px 12px;padding:12px 14px;font-size:14px';
-    if (isHtml) { div.innerHTML = text; }
-    else { div.textContent = text; }
+    d.innerHTML = '<div class="msg-agent-bubble">' + html + '</div>';
   }
-  chat.appendChild(div);
-  div.scrollIntoView({ behavior: 'smooth' });
-  return div;
+  chat.appendChild(d);
+  d.scrollIntoView({ behavior: 'smooth' });
+  return d;
+}
+
+function validateResponse(data) {
+  if (!data) return { valid: false, text: 'No response received.' };
+  if (data.status === 'error') return { valid: false, text: 'Agent error. Please try again.' };
+  if (!data.answer || typeof data.answer !== 'string') return { valid: false, text: 'Empty response.' };
+  var t = data.answer.trim();
+  if (t.length < 10) return { valid: false, text: 'Response too short.' };
+  return { valid: true, text: t };
 }
 
 async function ask(q) {
@@ -313,56 +777,54 @@ async function sendMsg() {
   if (!q) return;
   inp.value = '';
 
-  conversationHistory.push({ role: 'user', content: q });
-  if (conversationHistory.length > 10) {
-    conversationHistory = conversationHistory.slice(-10);
-  }
+  var btn = document.getElementById('sendBtn');
+  btn.disabled = true;
 
-  addMsg('user', q);
-  var thinking = addMsg('agent', 'Thinking...', false);
-  var agentCSS = 'align-self:flex-start;width:100%;max-width:100%;background:#f1f3f4;' +
-    'border-radius:4px 12px 12px 12px;padding:12px 14px;font-size:14px';
+  conversationHistory.push({ role: 'user', content: q });
+  if (conversationHistory.length > 10) conversationHistory = conversationHistory.slice(-10);
+
+  addUserMsg(q);
+  var thinkingEl = addAgentMsg('', true);
 
   try {
     var controller = new AbortController();
-    var timeout = setTimeout(function() { controller.abort(); }, 15000);
+    var timeout = setTimeout(function() { controller.abort(); }, 20000);
 
     var r = await fetch(AGENT_URL, {
       method: 'POST',
-      body: JSON.stringify({
-        question: q,
-        person: person,
-        history: conversationHistory.slice(0, -1)
-      }),
+      body: JSON.stringify({ question: q, person: person, history: conversationHistory.slice(0, -1) }),
       signal: controller.signal
     });
     clearTimeout(timeout);
 
-    if (!r.ok) throw new Error('Server returned ' + r.status);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
 
     var data = await r.json();
-    var validation = validateResponse(data);
+    var v = validateResponse(data);
 
-    if (!validation.valid) {
+    if (!v.valid) {
       conversationHistory.pop();
-      thinking.style.cssText = agentCSS;
-      thinking.innerHTML = renderError(validation.text, q);
-      return;
+      thinkingEl.innerHTML = '<div class="msg-agent-bubble"><div class="error-bubble">' + v.text + '</div>' +
+        '<button class="retry-btn" onclick="retryQuestion(\'' + q.replace(/'/g, "\\'") + '\')">Try again</button></div>';
+    } else {
+      conversationHistory.push({ role: 'assistant', content: v.text });
+      thinkingEl.innerHTML = '<div class="msg-agent-bubble">' + renderResponse(v.text) + '</div>';
     }
-
-    conversationHistory.push({ role: 'assistant', content: validation.text });
-    var rendered = renderResponse(validation.text);
-    thinking.style.cssText = agentCSS;
-    thinking.innerHTML = rendered;
 
   } catch(e) {
     conversationHistory.pop();
-    var msg = e.name === 'AbortError' ?
-      'Request timed out. Please try again.' :
-      'Could not connect to the health agent.';
-    thinking.style.cssText = agentCSS;
-    thinking.innerHTML = renderError(msg, q);
+    var msg = e.name === 'AbortError' ? 'Request timed out.' : 'Could not connect.';
+    thinkingEl.innerHTML = '<div class="msg-agent-bubble"><div class="error-bubble">' + msg + '</div>' +
+      '<button class="retry-btn" onclick="retryQuestion(\'' + q.replace(/'/g, "\\'") + '\')">Try again</button></div>';
   }
+
+  btn.disabled = false;
+  thinkingEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+function retryQuestion(q) {
+  document.getElementById('inp').value = q;
+  sendMsg();
 }
 </script>
 </body>
