@@ -132,8 +132,7 @@ function renderResponse(text) {
           'text-transform:uppercase;letter-spacing:.04em">' + cleanHeading + '</div><div>';
         return;
       }
-
-      if (/^[-\u2013\u2014*]\s/.test(line)) {
+     if (/^[-\u2013\u2014*]\s/.test(line) || (inSection && line.length > 3 && !isHeading)) {
         itemNum++;
         var itemText = line.replace(/^[-\u2013\u2014*]\s+/, '').trim();
         var dashIdx = itemText.indexOf(' - ');
