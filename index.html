@@ -74,73 +74,154 @@
   }
 
   function renderResponse(text) {
-    if (!text) return '<div style="color:#202124;font-size:14px">No response received.</div>';
+  if (!text) return '<div style="color:#202124;font-size:14px">No response received.</div>';
 
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-    const numbered = lines.filter(l => /^\d+\./.test(l));
-    const summaryLine = lines.find(l => /^summary:/i.test(l));
-    const firstNum = numbered.length ? lines.indexOf(numbered[0]) : -1;
-    const header = firstNum > 0 ? lines.slice(0, firstNum).join(' ') : '';
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
 
-    // CASE 1 — numbered lines with pipes → table
-    if (numbered.length >= 1) {
-      const rows = numbered.map(line => {
-        return line.replace(/^\d+\.\s*/, '').split('|').map(p => p.trim()).filter(p => p);
-      });
-      const maxCols = Math.max(...rows.map(r => r.length));
-      const colLabels = inferColumnLabels(rows, maxCols);
+  // Check if response has sections with items under them
+  const hasSections = lines.some(l => /^[A-Z][^|]+:$/.test(l) || /medications:|medicines:|health:|psychiatric:|general:|conditions:|tests:|visits:/i.test(l));
+  const hasNumbered = lines.some(l => /^\d+\./.test(l));
+  const hasItems = lines.some(l => /^[-–—]/.test(l));
 
-      let html = '';
-      if (header) html += `<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:8px">${header}</div>`;
+  // CASE 1 — has sections with bullet items → render as headed numbered groups
+  if (hasSections && hasItems) {
+    let html = '';
+    let currentSection = null;
+    let itemNum = 0;
+    let summaryLine = '';
 
-      html += `<div style="overflow-x:auto;margin-bottom:4px">
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead><tr>
-            <th style="background:#1a73e8;color:white;padding:7px 8px;text-align:center;width:28px;border-radius:6px 0 0 0">#</th>`;
-      colLabels.forEach((lbl, i) => {
-        const r = i === colLabels.length - 1 ? 'border-radius:0 6px 0 0' : '';
-        html += `<th style="background:#1a73e8;color:white;padding:7px 8px;text-align:left;${r}">${lbl}</th>`;
-      });
-      html += `</tr></thead><tbody>`;
+    lines.forEach(line => {
+      // Detect summary line
+      if (/^summary:/i.test(line) || /^all these/i.test(line) || /^all medications/i.test(line)) {
+        summaryLine = line;
+        return;
+      }
 
-      rows.forEach((row, i) => {
-        const bg = i % 2 === 0 ? '#ffffff' : '#f8f9fa';
-        html += `<tr style="background:${bg}"><td style="padding:7px 8px;color:#1a73e8;font-weight:500;text-align:center;border-bottom:1px solid #e8eaed">${i+1}</td>`;
-        for (let c = 0; c < maxCols; c++) {
-          html += `<td style="padding:7px 8px;border-bottom:1px solid #e8eaed;color:#202124;vertical-align:top">${row[c] || ''}</td>`;
+      // Detect section heading — line ending with : or bold heading
+      const isHeading = /^[A-Z][^|]{3,}:$/.test(line) ||
+                        /^\*\*[^*]+\*\*:?$/.test(line) ||
+                        /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Cardiac|Vitamin|Supplement)/i.test(line);
+
+      if (isHeading) {
+        // Close previous section if open
+        if (currentSection !== null) {
+          html += `</div>`;
         }
-        html += `</tr>`;
-      });
-      html += `</tbody></table></div>`;
-      if (summaryLine) html += `<div style="font-size:12px;color:#5f6368;margin-top:8px;padding-top:6px;border-top:1px solid #e8eaed;font-style:italic">${summaryLine}</div>`;
-      return html;
+        // Clean the heading text
+        const headingText = line.replace(/\*\*/g, '').replace(/:$/, '').trim();
+        itemNum = 0; // reset counter for each section
+        currentSection = headingText;
+        html += `
+          <div style="margin-bottom:16px">
+            <div style="font-size:13px;font-weight:600;color:#1a73e8;margin-bottom:8px;padding:6px 12px;background:#e8f0fe;border-radius:6px;display:inline-block">
+              ${headingText}
+            </div>
+            <div style="margin-left:4px">`;
+        return;
+      }
+
+      // Detect bullet item
+      const isBullet = /^[-–—*]\s/.test(line);
+      if (isBullet && currentSection !== null) {
+        itemNum++;
+        const itemText = line.replace(/^[-–—*]\s+/, '').trim();
+
+        // Split on first dash that separates name from details
+        const dashIdx = itemText.indexOf(' - ');
+        const medName = dashIdx > -1 ? itemText.substring(0, dashIdx).trim() : itemText;
+        const medDetail = dashIdx > -1 ? itemText.substring(dashIdx + 3).trim() : '';
+
+        html += `
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;margin-bottom:6px;background:#f8f9fa;border-radius:8px;border-left:3px solid #e8eaed">
+            <div style="background:#1a73e8;color:white;border-radius:50%;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;margin-top:1px">${itemNum}</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500;color:#202124">${medName}</div>
+              ${medDetail ? `<div style="font-size:12px;color:#5f6368;margin-top:2px">${medDetail}</div>` : ''}
+            </div>
+          </div>`;
+        return;
+      }
+
+      // Line outside a section — render as plain text
+      if (currentSection === null && line) {
+        html += `<div style="font-size:14px;color:#202124;margin-bottom:6px">${line}</div>`;
+      }
+    });
+
+    // Close last section
+    if (currentSection !== null) {
+      html += `</div></div>`;
     }
 
-    // CASE 2 — labeled card lines like "Test: HbA1c"
-    const labeled = lines.filter(l => /^[A-Za-z ]+:\s*.+/.test(l) && !/^summary:/i.test(l));
-    if (labeled.length >= 2) {
-      const firstLbl = lines.indexOf(labeled[0]);
-      const hdr = firstLbl > 0 ? lines.slice(0, firstLbl).join(' ') : '';
-      let html = '';
-      if (hdr) html += `<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:10px">${hdr}</div>`;
-      html += `<div style="background:#f8f9fa;border-radius:10px;padding:10px 12px;border:1px solid #e8eaed">`;
-      labeled.forEach(line => {
-        const ci = line.indexOf(':');
-        const lbl = line.substring(0, ci).trim();
-        const val = line.substring(ci + 1).trim();
-        html += `<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid #eeeeee;align-items:baseline">
-          <div style="font-size:11px;font-weight:500;color:#5f6368;min-width:110px;flex-shrink:0">${lbl}</div>
-          <div style="font-size:13px;color:#202124">${val}</div>
-        </div>`;
-      });
-      html += `</div>`;
-      if (summaryLine) html += `<div style="font-size:12px;color:#5f6368;margin-top:8px;font-style:italic">${summaryLine}</div>`;
-      return html;
+    // Summary line at bottom
+    if (summaryLine) {
+      html += `<div style="margin-top:8px;padding:10px 14px;background:#e8f0fe;border-radius:8px;font-size:12px;color:#1a73e8;font-weight:500">${summaryLine.replace(/\*\*/g,'')}</div>`;
     }
 
-    // CASE 3 — plain text, just render cleanly
-    return `<div style="font-size:14px;color:#202124;line-height:1.7">${lines.join('<br>')}</div>`;
+    return html || renderPlain(lines);
   }
+
+  // CASE 2 — numbered lines with | pipes → render as spaced cards
+  const numbered = lines.filter(l => /^\d+\./.test(l));
+  const summaryLine = lines.find(l => /^summary:/i.test(l));
+  const firstNum = numbered.length ? lines.indexOf(numbered[0]) : -1;
+  const header = firstNum > 0 ? lines.slice(0, firstNum).join(' ') : '';
+
+  if (numbered.length >= 1) {
+    let html = '';
+    if (header) {
+      html += `<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e8eaed">${header}</div>`;
+    }
+    numbered.forEach((line, idx) => {
+      const withoutNum = line.replace(/^\d+\.\s*/, '');
+      const parts = withoutNum.split('|').map(p => p.trim()).filter(p => p);
+      const mainName = parts[0] || '';
+      const rest = parts.slice(1);
+      html += `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin-bottom:8px;background:#f8f9fa;border-radius:10px;border-left:3px solid #1a73e8">
+          <div style="background:#1a73e8;color:white;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px">${idx + 1}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:${rest.length ? '4px' : '0'}">${mainName}</div>
+            ${rest.map(r => `<div style="font-size:12px;color:#5f6368;margin-bottom:2px">${r}</div>`).join('')}
+          </div>
+        </div>`;
+    });
+    if (summaryLine) {
+      html += `<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;font-size:12px;color:#1a73e8;font-weight:500">${summaryLine}</div>`;
+    }
+    return html;
+  }
+
+  // CASE 3 — labeled card (Test: HbA1c style)
+  const labeled = lines.filter(l => /^[A-Za-z ]+:\s*.+/.test(l) && !/^summary:/i.test(l));
+  if (labeled.length >= 2) {
+    const firstLbl = lines.indexOf(labeled[0]);
+    const hdr = firstLbl > 0 ? lines.slice(0, firstLbl).join(' ') : '';
+    let html = '';
+    if (hdr) html += `<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:12px">${hdr}</div>`;
+    html += `<div style="background:#f8f9fa;border-radius:10px;padding:4px 0;border:1px solid #e8eaed">`;
+    labeled.forEach((line, i) => {
+      const ci = line.indexOf(':');
+      const lbl = line.substring(0, ci).trim();
+      const val = line.substring(ci + 1).trim();
+      html += `<div style="display:flex;gap:12px;padding:10px 14px;${i < labeled.length - 1 ? 'border-bottom:1px solid #e8eaed;' : ''}align-items:baseline">
+        <div style="font-size:11px;font-weight:500;color:#80868b;min-width:110px;flex-shrink:0;text-transform:uppercase;letter-spacing:.03em">${lbl}</div>
+        <div style="font-size:13px;color:#202124;flex:1">${val}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    const sl = lines.find(l => /^summary:/i.test(l));
+    if (sl) html += `<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;font-size:12px;color:#1a73e8;font-weight:500">${sl}</div>`;
+    return html;
+  }
+
+  // CASE 4 — plain text fallback
+  return renderPlain(lines);
+}
+
+function renderPlain(lines) {
+  return `<div style="font-size:14px;color:#202124;line-height:1.8">${lines.map(l => `<div style="margin-bottom:6px">${l.replace(/\*\*/g,'')}</div>`).join('')}</div>`;
+}
 
   function addMsg(role, text, isHtml) {
     const chat = document.getElementById('chat');
