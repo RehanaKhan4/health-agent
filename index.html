@@ -113,28 +113,29 @@
     }
 
     .condition-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 12px;
-      border-radius: var(--radius-xs);
-      margin-bottom: 7px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-    }
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-xs);
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-left: 4px solid transparent;
+  box-shadow: var(--shadow-xs);
+}
 
-    .cond-psychiatric { background: var(--purple-soft); color: var(--purple); }
-    .cond-diabetes { background: var(--blue-soft); color: var(--blue); }
-    .cond-bp { background: var(--rose-soft); color: var(--rose); }
-    .cond-thyroid { background: var(--teal-soft); color: var(--teal); }
-    .cond-kidney { background: var(--amber-soft); color: var(--amber); }
-    .cond-cholesterol { background: var(--green-soft); color: var(--green); }
-    .cond-anxiety { background: var(--purple-soft); color: var(--purple); }
-    .cond-vitamins { background: var(--green-soft); color: var(--green); }
-    .cond-general { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--border); }
-
+.cond-psychiatric { background: var(--purple-soft); color: var(--purple); border-left-color: var(--purple); }
+.cond-diabetes    { background: var(--blue-soft);   color: var(--blue);   border-left-color: var(--blue); }
+.cond-bp          { background: var(--rose-soft);   color: var(--rose);   border-left-color: var(--rose); }
+.cond-thyroid     { background: var(--teal-soft);   color: var(--teal);   border-left-color: var(--teal); }
+.cond-kidney      { background: var(--amber-soft);  color: var(--amber);  border-left-color: var(--amber); }
+.cond-cholesterol { background: var(--green-soft);  color: var(--green);  border-left-color: var(--green); }
+.cond-anxiety     { background: var(--purple-soft); color: var(--purple); border-left-color: var(--purple); }
+.cond-vitamins    { background: var(--green-soft);  color: var(--green);  border-left-color: var(--green); }
+.cond-general     { background: var(--surface-2);   color: var(--ink-3);  border-left-color: var(--border); border: 1px solid var(--border); }
     .cond-count {
       margin-left: auto;
       font-size: 10px;
@@ -150,14 +151,16 @@
       gap: 10px;
       padding: 10px 12px;
       margin-bottom: 5px;
-      background: var(--surface-2);
+      background: var(--surface);
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-sm);
-      transition: box-shadow 0.15s;
+      border-left: 3px solid var(--border);
+      transition: all 0.15s;
     }
-
-    .med-item:hover { box-shadow: var(--shadow); }
-
+    .med-item:hover {
+      box-shadow: var(--shadow);
+      transform: translateX(2px);
+    }
     .med-item:last-child { margin-bottom: 0; }
 
     .med-badge-num {
