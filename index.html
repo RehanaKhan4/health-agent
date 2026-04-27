@@ -128,7 +128,7 @@
 
         // Split on first dash that separates name from details
         const dashIdx = itemText.indexOf(' - ');
-        const medName = dashIdx > -1 ? itemText.substring(0, dashIdx).trim() : itemText;
+        const medName = (dashIdx > -1 ? itemText.substring(0, dashIdx).trim() : itemText).replace(/\*\*/g, '');
         const medDetail = dashIdx > -1 ? itemText.substring(dashIdx + 3).trim() : '';
 
         html += `
