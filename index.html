@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,28 +9,29 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #f5f5f5; }
     .app { max-width: 600px; margin: 0 auto; padding: 1rem; }
-    h1 { font-size: 18px; font-weight: 500; margin-bottom: 1rem; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    h1 { font-size: 18px; font-weight: 500; }
+    .clear-btn { padding: 4px 12px; border-radius: 12px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px; color: #5f6368; }
     .person-row { display: flex; gap: 8px; margin-bottom: 1rem; }
-    .person-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd;
-      background: white; cursor: pointer; font-size: 13px; }
+    .person-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 13px; }
     .person-btn.active { background: #1a73e8; color: white; border-color: #1a73e8; }
-    .chat { background: white; border-radius: 12px; padding: 1rem;
-      min-height: 400px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px; }
+    .chat { background: white; border-radius: 12px; padding: 1rem; min-height: 400px; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 10px; }
     .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; max-width: 85%; }
     .user { background: #1a73e8; color: white; align-self: flex-end; border-radius: 12px 12px 4px 12px; }
-    .agent { background: #f1f3f4; color: #202124; align-self: flex-start; border-radius: 12px 12px 12px 4px; }
     .input-row { display: flex; gap: 8px; }
     input { flex: 1; padding: 10px 14px; border-radius: 24px; border: 1px solid #ddd; font-size: 14px; }
-    button.send { padding: 10px 20px; border-radius: 24px; background: #1a73e8;
-      color: white; border: none; cursor: pointer; font-size: 14px; }
+    button.send { padding: 10px 20px; border-radius: 24px; background: #1a73e8; color: white; border: none; cursor: pointer; font-size: 14px; }
     .quick { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-    .qbtn { padding: 5px 12px; border-radius: 16px; border: 1px solid #ddd;
-      background: white; cursor: pointer; font-size: 12px; }
+    .qbtn { padding: 5px 12px; border-radius: 16px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px; }
+    .system-msg { text-align: center; font-size: 11px; color: #9aa0a6; padding: 4px 0; font-style: italic; }
   </style>
 </head>
 <body>
 <div class="app">
-  <h1>Family Health Agent</h1>
+  <div class="top-bar">
+    <h1>Family Health Agent</h1>
+    <button class="clear-btn" onclick="clearChat()">Clear chat</button>
+  </div>
   <div class="person-row">
     <button class="person-btn active" onclick="setPerson('Father',this)">Father</button>
     <button class="person-btn" onclick="setPerson('Mother',this)">Mother</button>
@@ -41,261 +43,328 @@
     <button class="qbtn" onclick="ask('Give me a full health summary for ' + person)">Full summary</button>
   </div>
   <div class="chat" id="chat">
-    <div class="msg agent">Hello! Ask me anything about your family's health records.</div>
+    <div class="msg" style="align-self:flex-start;background:#f1f3f4;color:#202124;border-radius:4px 12px 12px 12px;">Hello! Ask me anything about your family health records.</div>
   </div>
   <div class="input-row">
     <input id="inp" placeholder="Ask anything..." onkeydown="if(event.key==='Enter') sendMsg()">
     <button class="send" onclick="sendMsg()">Send</button>
   </div>
 </div>
-  
-  <script>
-    const AGENT_URL = 'https://script.google.com/macros/s/AKfycbwEV1IPPw22mNGZoYkqwwiMywB0FJ-VMuxkehpI7HN5bvnMZgLlnU3q4fu_ko-y0eWw/exec'
-  let person = 'Father';
 
-  function setPerson(p, btn) {
-    person = p;
-    document.querySelectorAll('.person-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+<script>
+const AGENT_URL = 'https://script.google.com/macros/s/AKfycbwEV1IPPw22mNGZoYkqwwiMywB0FJ-VMuxkehpI7HN5bvnMZgLlnU3q4fu_ko-y0eWw/exec';
+let person = 'Father';
+let lastPerson = 'Father';
+let conversationHistory = [];
+
+function setPerson(p, btn) {
+  person = p;
+  document.querySelectorAll('.person-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (p !== lastPerson) {
+    conversationHistory = [];
+    lastPerson = p;
+    showSystemMsg('Switched to ' + p + '. Starting fresh conversation.');
   }
+}
 
-  function inferColumnLabels(rows, maxCols) {
-    const flat = rows.flat().join(' ').toLowerCase();
-    if (flat.includes('mg') || flat.includes('tablet') || flat.includes('daily') || flat.includes('twice') || flat.includes('once')) {
-      return ['Medicine & dose','Frequency','Doctor','Condition','Notes'].slice(0, maxCols);
-    }
-    if (flat.includes('hba1c') || flat.includes('cbc') || flat.includes('normal') || flat.includes('high') || flat.includes('low') || flat.includes('%')) {
-      return ['Test','Date','Result','Status','Lab'].slice(0, maxCols);
-    }
-    if (flat.includes('dr.') || flat.includes('clinic') || flat.includes('visit') || flat.includes('apollo')) {
-      return ['Date','Doctor','Clinic','Reason','Follow-up'].slice(0, maxCols);
-    }
-    return ['Details','Value','Info','Notes','Status'].slice(0, maxCols);
-  }
+function showSystemMsg(text) {
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'system-msg';
+  div.textContent = text;
+  chat.appendChild(div);
+}
 
-  function renderResponse(text) {
+function clearChat() {
+  conversationHistory = [];
+  const chat = document.getElementById('chat');
+  chat.innerHTML = '';
+  showSystemMsg('Conversation cleared.');
+}
+
+// ── RENDER RESPONSE ──────────────────────────────────────────
+function renderResponse(text) {
   if (!text) return '<div style="color:#202124;font-size:14px">No response received.</div>';
 
-  // Strip ALL markdown FIRST before any processing
+  // Strip markdown FIRST
   text = text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/^#{1,6}\s+/gm, '')
     .trim();
 
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  const lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
 
-  const hasSections = lines.some(l =>
-    /^[A-Z][^|]{3,}:?\s*$/.test(l) ||
-    /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Morning|Evening|Night|Daily|Condition|Medication)/i.test(l)
-  );
-  const hasItems = lines.some(l => /^[-–—*]\s/.test(l));
-  const hasNumbered = lines.some(l => /^\d+\./.test(l));
+  var hasSections = lines.some(function(l) {
+    return /^[A-Z][^|]{3,}:?\s*$/.test(l) ||
+      /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Condition|Medication|Blood|Cholesterol)/i.test(l);
+  });
+  var hasItems = lines.some(function(l) { return /^[-\u2013\u2014*]\s/.test(l); });
+  var hasNumbered = lines.some(function(l) { return /^\d+\./.test(l); });
 
-  // ── CASE 1: Sections with bullet items ──────────────────────
+  // CASE 1 — sections with bullet items
   if (hasSections && hasItems) {
-    let html = '';
-    let currentSection = null;
-    let itemNum = 0;
-    let summaryLine = '';
-    let headerLine = '';
-    let inSection = false;
+    var html = '';
+    var currentSection = null;
+    var itemNum = 0;
+    var summaryLine = '';
+    var inSection = false;
 
-    lines.forEach(line => {
-      // Summary / closing line
+    lines.forEach(function(line) {
       if (/^summary:/i.test(line) || /^all these/i.test(line) || /^all medications/i.test(line)) {
         summaryLine = line;
         return;
       }
 
-      // Section heading detection
-      const isHeading =
-        (/^[A-Z][^|]{3,}:?\s*$/.test(line) && !/^[-–—\d]/.test(line)) ||
-        /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Morning|Evening|Night|Daily)/i.test(line);
-
-      if (isHeading && !hasItems) return;
+      var isHeading = (/^[A-Z][^|]{3,}:?\s*$/.test(line) && !/^[-\u2013\u2014\d]/.test(line)) ||
+        /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Blood|Cholesterol)/i.test(line);
 
       if (isHeading) {
-        // Close previous section
-        if (inSection) html += `</div></div>`;
-        const cleanHeading = line.replace(/:$/, '').trim();
+        if (inSection) { html += '</div></div>'; }
+        var cleanHeading = line.replace(/:$/, '').trim();
         itemNum = 0;
         inSection = true;
         currentSection = cleanHeading;
-        html += `
-          <div style="margin-bottom:16px">
-            <div style="font-
-
-      // Detect section heading — line ending with : or bold heading
-      const isHeading = /^[A-Z][^|]{3,}:$/.test(line) ||
-                        /^\*\*[^*]+\*\*:?$/.test(line) ||
-                        /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Cardiac|Vitamin|Supplement)/i.test(line);
-
-      if (isHeading) {
-        // Close previous section if open
-        if (currentSection !== null) {
-          html += `</div>`;
-        }
-        // Clean the heading text
-        const headingText = line.replace(/\*\*/g, '').replace(/:$/, '').trim();
-        itemNum = 0; // reset counter for each section
-        currentSection = headingText;
-        html += `
-          <div style="margin-bottom:16px">
-            <div style="font-size:13px;font-weight:600;color:#1a73e8;margin-bottom:8px;padding:6px 12px;background:#e8f0fe;border-radius:6px;display:inline-block">
-              ${headingText}
-            </div>
-            <div style="margin-left:4px">`;
+        html += '<div style="margin-bottom:16px">' +
+          '<div style="font-size:12px;font-weight:600;color:#1a73e8;margin-bottom:8px;' +
+          'padding:5px 12px;background:#e8f0fe;border-radius:6px;display:inline-block;' +
+          'text-transform:uppercase;letter-spacing:.04em">' + cleanHeading + '</div><div>';
         return;
       }
 
-      // Detect bullet item
-      const isBullet = /^[-–—*]\s/.test(line);
-      if (isBullet && currentSection !== null) {
+      if (/^[-\u2013\u2014*]\s/.test(line)) {
         itemNum++;
-        const itemText = line.replace(/^[-–—*]\s+/, '').trim();
+        var itemText = line.replace(/^[-\u2013\u2014*]\s+/, '').trim();
+        var dashIdx = itemText.indexOf(' - ');
+        var medName = (dashIdx > -1 ? itemText.substring(0, dashIdx) : itemText).trim();
+        var medDetail = dashIdx > -1 ? itemText.substring(dashIdx + 3).trim() : '';
+        var forMatch = medDetail.match(/\(?for (.+?)\)?\.?$/i);
+        var condition = forMatch ? forMatch[1].trim() : '';
+        var freq = condition ? medDetail.replace(/\(?for .+?\)?\.?$/i, '').replace(/-\s*$/, '').trim() : medDetail;
 
-        // Split on first dash that separates name from details
-        const dashIdx = itemText.indexOf(' - ');
-        const medName = (dashIdx > -1 ? itemText.substring(0, dashIdx).trim() : itemText).replace(/\*\*/g, '');
-        const medDetail = dashIdx > -1 ? itemText.substring(dashIdx + 3).trim() : '';
+        if (!inSection) {
+          inSection = true;
+          html += '<div style="margin-bottom:16px"><div>';
+        }
 
-        html += `
-          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;margin-bottom:6px;background:#f8f9fa;border-radius:8px;border-left:3px solid #e8eaed">
-            <div style="background:#1a73e8;color:white;border-radius:50%;min-width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;margin-top:1px">${itemNum}</div>
-            <div style="flex:1">
-              <div style="font-size:13px;font-weight:500;color:#202124">${medName}</div>
-              ${medDetail ? `<div style="font-size:12px;color:#5f6368;margin-top:2px">${medDetail}</div>` : ''}
-            </div>
-          </div>`;
+        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;' +
+          'margin-bottom:8px;background:#f8f9fa;border-radius:10px;border-left:3px solid #1a73e8">' +
+          '<div style="background:#1a73e8;color:white;border-radius:50%;min-width:22px;height:22px;' +
+          'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
+          'flex-shrink:0;margin-top:1px">' + itemNum + '</div>' +
+          '<div style="flex:1">' +
+          '<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:3px">' + medName + '</div>' +
+          (freq ? '<div style="font-size:12px;color:#5f6368;margin-bottom:2px">' + freq + '</div>' : '') +
+          (condition ? '<div style="font-size:12px;color:#1a73e8">For: ' + condition + '</div>' : '') +
+          '</div></div>';
         return;
       }
 
-      // Line outside a section — render as plain text
-      if (currentSection === null && line) {
-        html += `<div style="font-size:14px;color:#202124;margin-bottom:6px">${line}</div>`;
+      if (!inSection && line) {
+        html += '<div style="font-size:14px;color:#202124;margin-bottom:8px;font-weight:500;' +
+          'padding-bottom:8px;border-bottom:1px solid #e8eaed">' + line + '</div>';
       }
     });
 
-    // Close last section
-    if (currentSection !== null) {
-      html += `</div></div>`;
-    }
-
-    // Summary line at bottom
+    if (inSection) { html += '</div></div>'; }
     if (summaryLine) {
-      html += `<div style="margin-top:8px;padding:10px 14px;background:#e8f0fe;border-radius:8px;font-size:12px;color:#1a73e8;font-weight:500">${summaryLine.replace(/\*\*/g,'')}</div>`;
+      html += '<div style="margin-top:8px;padding:10px 14px;background:#e8f0fe;border-radius:8px;' +
+        'font-size:12px;color:#1a73e8;font-weight:500">' + summaryLine + '</div>';
     }
-
-    return html || renderPlain(lines);
+    if (html) return html;
   }
 
-  // CASE 2 — numbered lines with | pipes → render as spaced cards
-  const numbered = lines.filter(l => /^\d+\./.test(l));
-  const summaryLine = lines.find(l => /^summary:/i.test(l));
-  const firstNum = numbered.length ? lines.indexOf(numbered[0]) : -1;
-  const header = firstNum > 0 ? lines.slice(0, firstNum).join(' ') : '';
+  // CASE 2 — numbered list
+  if (hasNumbered) {
+    var numbered = lines.filter(function(l) { return /^\d+\./.test(l); });
+    var summaryLine2 = lines.find(function(l) { return /^summary:/i.test(l); });
+    var firstNum = lines.indexOf(numbered[0]);
+    var header = firstNum > 0 ? lines.slice(0, firstNum).join(' ') : '';
+    var html2 = '';
 
-  if (numbered.length >= 1) {
-    let html = '';
     if (header) {
-      html += `<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e8eaed">${header}</div>`;
+      html2 += '<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:14px;' +
+        'padding-bottom:10px;border-bottom:1px solid #e8eaed">' + header + '</div>';
     }
-    numbered.forEach((line, idx) => {
-      const withoutNum = line.replace(/^\d+\.\s*/, '');
-      const parts = withoutNum.split('|').map(p => p.trim()).filter(p => p);
-      const mainName = parts[0] || '';
-      const rest = parts.slice(1);
-      html += `
-        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;margin-bottom:8px;background:#f8f9fa;border-radius:10px;border-left:3px solid #1a73e8">
-          <div style="background:#1a73e8;color:white;border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px">${idx + 1}</div>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:${rest.length ? '4px' : '0'}">${mainName}</div>
-            ${rest.map(r => `<div style="font-size:12px;color:#5f6368;margin-bottom:2px">${r}</div>`).join('')}
-          </div>
-        </div>`;
+
+    numbered.forEach(function(line, idx) {
+      var withoutNum = line.replace(/^\d+\.\s*/, '');
+      var name, freq, doctor, condition;
+
+      if (withoutNum.includes('|')) {
+        var parts = withoutNum.split('|').map(function(p) { return p.trim(); }).filter(function(p) { return p; });
+        name = parts[0] || '';
+        freq = parts[1] || '';
+        doctor = parts[2] || '';
+        condition = parts[3] ? parts[3].replace(/^for:\s*/i, '') : '';
+      } else {
+        var di = withoutNum.indexOf(' - ');
+        name = (di > -1 ? withoutNum.substring(0, di) : withoutNum).trim();
+        var detail = di > -1 ? withoutNum.substring(di + 3).trim() : '';
+        var fm = detail.match(/\(?for (.+?)\)?\.?$/i);
+        condition = fm ? fm[1].trim() : '';
+        freq = condition ? detail.replace(/\(?for .+?\)?\.?$/i, '').replace(/-\s*$/, '').trim() : detail;
+        doctor = '';
+      }
+
+      html2 += '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;' +
+        'margin-bottom:8px;background:#f8f9fa;border-radius:10px;border-left:3px solid #1a73e8">' +
+        '<div style="background:#1a73e8;color:white;border-radius:50%;min-width:22px;height:22px;' +
+        'display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;' +
+        'flex-shrink:0;margin-top:1px">' + (idx + 1) + '</div>' +
+        '<div style="flex:1">' +
+        '<div style="font-size:13px;font-weight:500;color:#202124;margin-bottom:3px">' + name + '</div>' +
+        (freq ? '<div style="font-size:12px;color:#5f6368;margin-bottom:2px">' + freq + '</div>' : '') +
+        (doctor ? '<div style="font-size:12px;color:#5f6368;margin-bottom:2px">' + doctor + '</div>' : '') +
+        (condition ? '<div style="font-size:12px;color:#1a73e8">For: ' + condition + '</div>' : '') +
+        '</div></div>';
     });
-    if (summaryLine) {
-      html += `<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;font-size:12px;color:#1a73e8;font-weight:500">${summaryLine}</div>`;
+
+    if (summaryLine2) {
+      html2 += '<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;' +
+        'font-size:12px;color:#1a73e8;font-weight:500">' + summaryLine2 + '</div>';
     }
-    return html;
+    return html2;
   }
 
-  // CASE 3 — labeled card (Test: HbA1c style)
-  const labeled = lines.filter(l => /^[A-Za-z ]+:\s*.+/.test(l) && !/^summary:/i.test(l));
+  // CASE 3 — labeled card
+  var labeled = lines.filter(function(l) {
+    return /^[A-Za-z ]+:\s*.+/.test(l) && !/^summary:/i.test(l);
+  });
   if (labeled.length >= 2) {
-    const firstLbl = lines.indexOf(labeled[0]);
-    const hdr = firstLbl > 0 ? lines.slice(0, firstLbl).join(' ') : '';
-    let html = '';
-    if (hdr) html += `<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:12px">${hdr}</div>`;
-    html += `<div style="background:#f8f9fa;border-radius:10px;padding:4px 0;border:1px solid #e8eaed">`;
-    labeled.forEach((line, i) => {
-      const ci = line.indexOf(':');
-      const lbl = line.substring(0, ci).trim();
-      const val = line.substring(ci + 1).trim();
-      html += `<div style="display:flex;gap:12px;padding:10px 14px;${i < labeled.length - 1 ? 'border-bottom:1px solid #e8eaed;' : ''}align-items:baseline">
-        <div style="font-size:11px;font-weight:500;color:#80868b;min-width:110px;flex-shrink:0;text-transform:uppercase;letter-spacing:.03em">${lbl}</div>
-        <div style="font-size:13px;color:#202124;flex:1">${val}</div>
-      </div>`;
+    var firstLbl = lines.indexOf(labeled[0]);
+    var hdr = firstLbl > 0 ? lines.slice(0, firstLbl).join(' ') : '';
+    var html3 = hdr ? '<div style="font-size:14px;font-weight:500;color:#202124;margin-bottom:12px">' + hdr + '</div>' : '';
+    html3 += '<div style="background:#f8f9fa;border-radius:10px;padding:4px 0;border:1px solid #e8eaed">';
+    labeled.forEach(function(line, i) {
+      var ci = line.indexOf(':');
+      var lbl = line.substring(0, ci).trim();
+      var val = line.substring(ci + 1).trim();
+      html3 += '<div style="display:flex;gap:12px;padding:10px 14px;' +
+        (i < labeled.length - 1 ? 'border-bottom:1px solid #e8eaed;' : '') + 'align-items:baseline">' +
+        '<div style="font-size:11px;font-weight:500;color:#80868b;min-width:110px;flex-shrink:0;' +
+        'text-transform:uppercase;letter-spacing:.03em">' + lbl + '</div>' +
+        '<div style="font-size:13px;color:#202124;flex:1">' + val + '</div></div>';
     });
-    html += `</div>`;
-    const sl = lines.find(l => /^summary:/i.test(l));
-    if (sl) html += `<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;font-size:12px;color:#1a73e8;font-weight:500">${sl}</div>`;
-    return html;
+    html3 += '</div>';
+    var sl = lines.find(function(l) { return /^summary:/i.test(l); });
+    if (sl) {
+      html3 += '<div style="margin-top:10px;padding:10px 14px;background:#e8f0fe;border-radius:8px;' +
+        'font-size:12px;color:#1a73e8;font-weight:500">' + sl + '</div>';
+    }
+    return html3;
   }
 
-  // CASE 4 — plain text fallback
-  return renderPlain(lines);
+  // CASE 4 — plain text
+  return '<div style="font-size:14px;color:#202124;line-height:1.8">' +
+    lines.map(function(l) {
+      return '<div style="margin-bottom:6px">' + l + '</div>';
+    }).join('') + '</div>';
 }
 
-function renderPlain(lines) {
-  return `<div style="font-size:14px;color:#202124;line-height:1.8">${lines.map(l => `<div style="margin-bottom:6px">${l.replace(/\*\*/g,'')}</div>`).join('')}</div>`;
+// ── VALIDATION ───────────────────────────────────────────────
+function validateResponse(data) {
+  if (!data) return { valid: false, text: 'No response received. Please check your connection.' };
+  if (data.status === 'error') return { valid: false, text: 'The agent encountered an error. Please try again.' };
+  if (!data.answer || typeof data.answer !== 'string') return { valid: false, text: 'Empty response. Please try again.' };
+  var text = data.answer.trim();
+  if (text.length < 10) return { valid: false, text: 'Response too short. Please try again.' };
+  return { valid: true, text: text };
 }
 
-  function addMsg(role, text, isHtml) {
-    const chat = document.getElementById('chat');
-    const div = document.createElement('div');
-    if (role === 'user') {
-      div.className = 'msg user';
-      div.textContent = text;
-    } else {
-      div.style.cssText = 'align-self:flex-start;width:100%;max-width:100%;background:#f1f3f4;border-radius:4px 12px 12px 12px;padding:12px 14px;font-size:14px';
-      if (isHtml) div.innerHTML = text;
-      else div.textContent = text;
-    }
-    chat.appendChild(div);
-    div.scrollIntoView({ behavior: 'smooth' });
-    return div;
+function renderError(message, q) {
+  return '<div style="color:#d93025;font-size:13px;margin-bottom:8px">' + message + '</div>' +
+    '<button onclick="retryQuestion(\'' + q.replace(/'/g, "\\'") + '\');return false;" ' +
+    'style="padding:6px 14px;border-radius:16px;border:1px solid #d93025;background:white;' +
+    'color:#d93025;cursor:pointer;font-size:12px;font-family:inherit">Try again</button>';
+}
+
+function retryQuestion(q) {
+  document.getElementById('inp').value = q;
+  sendMsg();
+}
+
+// ── MESSAGING ────────────────────────────────────────────────
+function addMsg(role, text, isHtml) {
+  var chat = document.getElementById('chat');
+  var div = document.createElement('div');
+  if (role === 'user') {
+    div.className = 'msg user';
+    div.textContent = text;
+  } else {
+    div.style.cssText = 'align-self:flex-start;width:100%;max-width:100%;background:#f1f3f4;' +
+      'border-radius:4px 12px 12px 12px;padding:12px 14px;font-size:14px';
+    if (isHtml) { div.innerHTML = text; }
+    else { div.textContent = text; }
+  }
+  chat.appendChild(div);
+  div.scrollIntoView({ behavior: 'smooth' });
+  return div;
+}
+
+async function ask(q) {
+  document.getElementById('inp').value = q;
+  await sendMsg();
+}
+
+async function sendMsg() {
+  var inp = document.getElementById('inp');
+  var q = inp.value.trim();
+  if (!q) return;
+  inp.value = '';
+
+  conversationHistory.push({ role: 'user', content: q });
+  if (conversationHistory.length > 10) {
+    conversationHistory = conversationHistory.slice(-10);
   }
 
-  async function ask(q) {
-    document.getElementById('inp').value = q;
-    await sendMsg();
-  }
+  addMsg('user', q);
+  var thinking = addMsg('agent', 'Thinking...', false);
+  var agentCSS = 'align-self:flex-start;width:100%;max-width:100%;background:#f1f3f4;' +
+    'border-radius:4px 12px 12px 12px;padding:12px 14px;font-size:14px';
 
-  async function sendMsg() {
-    const inp = document.getElementById('inp');
-    const q = inp.value.trim();
-    if (!q) return;
-    inp.value = '';
-    addMsg('user', q);
-    const thinking = addMsg('agent', 'Thinking...');
-    try {
-      const r = await fetch(AGENT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ question: q, person })
-      });
-      const data = await r.json();
-      const rendered = renderResponse(data.answer);
-      thinking.style.cssText = 'align-self:flex-start;width:100%;max-width:100%;background:#f1f3f4;border-radius:4px 12px 12px 12px;padding:12px 14px';
-      thinking.innerHTML = rendered;
-    } catch(e) {
-      thinking.textContent = 'Error connecting. Check your setup.';
+  try {
+    var controller = new AbortController();
+    var timeout = setTimeout(function() { controller.abort(); }, 15000);
+
+    var r = await fetch(AGENT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        question: q,
+        person: person,
+        history: conversationHistory.slice(0, -1)
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!r.ok) throw new Error('Server returned ' + r.status);
+
+    var data = await r.json();
+    var validation = validateResponse(data);
+
+    if (!validation.valid) {
+      conversationHistory.pop();
+      thinking.style.cssText = agentCSS;
+      thinking.innerHTML = renderError(validation.text, q);
+      return;
     }
+
+    conversationHistory.push({ role: 'assistant', content: validation.text });
+    var rendered = renderResponse(validation.text);
+    thinking.style.cssText = agentCSS;
+    thinking.innerHTML = rendered;
+
+  } catch(e) {
+    conversationHistory.pop();
+    var msg = e.name === 'AbortError' ?
+      'Request timed out. Please try again.' :
+      'Could not connect to the health agent.';
+    thinking.style.cssText = agentCSS;
+    thinking.innerHTML = renderError(msg, q);
   }
+}
 </script>
 </body>
 </html>
-
-
-
