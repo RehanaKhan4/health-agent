@@ -479,7 +479,8 @@ function renderMedicines(lines) {
     }
 
     var isBullet = /^[-\u2013\u2014*]\s/.test(line);
-    if (isBullet || (currentKey && line.length > 5)) {
+var isPlainMedLine = currentKey !== null && line.length > 5 && !isHeading;
+if (isBullet || isPlainMedLine) {
       if (!currentKey) {
         currentKey = getConditionKey(line);
         if (!sections[currentKey]) { sections[currentKey] = []; sectionOrder.push(currentKey); }
