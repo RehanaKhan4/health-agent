@@ -477,8 +477,10 @@ function renderMedicines(lines) {
       }
       return;
     }
-var isBullet = /^[-\u2013\u2014*]\s/.test(line);
-if (isBullet || (currentKey && line.length > 5)) {
+
+    var isBullet = /^[-\u2013\u2014*]\s/.test(line);
+    if (isBullet || (currentKey && line.length > 5)) {
+      if (!currentKey) {
         currentKey = getConditionKey(line);
         if (!sections[currentKey]) { sections[currentKey] = []; sectionOrder.push(currentKey); }
       }
