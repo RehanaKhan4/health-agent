@@ -563,16 +563,20 @@ function renderResponse(text) {
 
   var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
 
-  var hasSections = lines.some(function(l) {
-    return /^[A-Z][^|]{3,}:?\s*$/.test(l) ||
-      /^(Psychiatric|General|Mental|Diabetes|Thyroid|Kidney|Heart|BP|Anxiety|Sleep|Vitamin|Supplement|Blood|Cholesterol)/i.test(l);
-  });
   var hasItems = lines.some(function(l) { return /^[-\u2013\u2014*]\s/.test(l); });
-  var hasNumbered = lines.some(function(l) { return /^\d+\./.test(l); });
-  var isMedicineResponse = lines.some(function(l) {
-    return /medicine|medicines|tablet|taking|dawai|prescription/i.test(l);
-  });
+var hasNumbered = lines.some(function(l) { return /^\d+\./.test(l); });
 
+// MEDICINE RESPONSE — trigger if ANY known condition heading + dash items exist
+var hasMedHeading = lines.some(function(l) {
+  return /^(Psychiatric|Diabetes|Blood Pressure|Thyroid|Kidney|Cholesterol|Anxiety|Vitamins|General Health|Supplements)/i.test(l);
+});
+var isMedicineResponse = lines.some(function(l) {
+  return /medicine|medicines|tablet|taking|active medicines/i.test(l);
+});
+
+if ((hasMedHeading && hasItems) || (isMedicineResponse && hasItems)) {
+  return renderMedicines(lines);
+}
   // MEDICINE RESPONSE — grouped by condition
   if ((hasSections && hasItems) || (isMedicineResponse && hasItems)) {
     return renderMedicines(lines);
