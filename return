@@ -562,7 +562,6 @@ function renderResponse(text) {
     .trim();
 
   var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
-console.log('LINES:', JSON.stringify(lines));
 
   var hasItems = lines.some(function(l) { return /^[-\u2013\u2014*]\s/.test(l); });
 var hasNumbered = lines.some(function(l) { return /^\d+\./.test(l); });
